@@ -5,8 +5,8 @@ no_list: true
 weight: 1
 ---
 
-This document walks through what is Jsonnet + `tf.libsonnet`, and some of the reasons you might consider using it for your next Terraform
-project.
+This document walks through an overview of Jsonnet and `tf.libsonnet`, as well as some of the reasons you might consider using
+it for your next Terraform project.
 
 ## What is Jsonnet?
 
@@ -18,11 +18,14 @@ adds programming constructs to the language. Think of it as JSON enhanced with:
 - [Functions](https://jsonnet.org/learning/tutorial.html#functions)
 - [Iteration](https://jsonnet.org/learning/tutorial.html#comprehension)
 
+Jsonnet is designed and optimized for the use case of writing configuration files. Check out [their design
+rationale document](https://jsonnet.org/articles/design.html) for more details.
+
 ## What is tf.libsonnet?
 
 `tf.libsonnet` is a collection of pure Jsonnet libraries that provide functions and utilities for generating
-[Terraform](https://www.terraform.io/) code in the [JSON configuration
-syntax](https://developer.hashicorp.com/terraform/language/syntax/json). The libraries allow you to streamline the
+[Terraform](https://www.terraform.io/) code (as [JSON configuration
+syntax](https://developer.hashicorp.com/terraform/language/syntax/json)). The libraries allow you to streamline the
 experience of writing static Terraform JSON configuration.
 
 Here is an example:
@@ -99,7 +102,7 @@ That same example above can be written in Terraform HCL in a more terse and read
 terraform {
   required_providers {
     null = {
-      source = "hashicorp/source"
+      source  = "hashicorp/source"
       version = "~> 3.0"
     }
   }
@@ -118,12 +121,14 @@ output "this_id" {
 }
 ```
 
-Indeed, if you are writing a single Terraform module, there is no need to use something like Jsonnet and `tf.libsonnet`.
+HCL provides many of the same constructs as Jsonnet, which means that there isn't much to gain from using Jsonnet for a
+single Terraform module.
 
-However, using Jsonnet can greatly increase the maintainability of large scale Terraform deployments, especially those
-that break their infrastructure into a series of smaller modules, and thus state files.
+However, using Jsonnet can greatly increase the maintainability of large scale Terraform deployments that span multiple
+modules and state files. When expanding a Terraform project to many smaller modules, you run into many limitations of
+the Terraform HCL language that is caused by its tight coupling to the Terraform runtime.
 
-Terraform HCL is tied to the Terraform runtime, and thus has multiple limitations. To name a few:
+To name a few:
 
 - Code reusability is limited to a single module, and thus single state file.
 - Certain constructs can not be interpolated dynamically (e.g.,
@@ -135,11 +140,21 @@ Terraform HCL is tied to the Terraform runtime, and thus has multiple limitation
 
 ### Motivating example
 
-To highlight this, consider a Terraform deployment where you have a single database in a VPC, and following best
-practices, you want to [isolate your state
-files](https://blog.gruntwork.io/how-to-manage-terraform-state-28f5697e68fa#784f) for the VPC and database.
-Additionally, you want to manage your infrastructure resources for multiple environments (`stage` and `prod`). To
-achieve this, you might organize your Terraform code as follows:
+Consider a Terraform deployment where you have a single database in a VPC, across two environments (`stage` and `prod`).
+To simplify the example, we will also assume we have defined sub modules for defining a canonical VPC and MySQL
+database. This will reduce the root modules in our examples to a single module block.
+
+In this example, we will assume that we want to follow best practices and [isolate the state
+files](https://blog.gruntwork.io/how-to-manage-terraform-state-28f5697e68fa#784f) for the components. This will result
+in four state files:
+
+- VPC in Stage
+- VPC in Prod
+- MySQL database in Stage
+- MySQL database in Prod
+
+To achieve this, we need to define the components with four root modules, one for each state file above. We will have a
+project structure like below:
 
 ```text
 .
@@ -163,15 +178,10 @@ achieve this, you might organize your Terraform code as follows:
         └── provider.tf
 ```
 
-In this set up, you will have 4 state files:
+The `main.tf` file for each component contains a single module call to define the underlying component infrastructure
+with some hardcoded parameters as the inputs.
 
-- VPC in Stage
-- VPC in Prod
-- MySQL database in Stage
-- MySQL database in Prod
-
-The `main.tf` file for each component will most likely contain a single module call with some hardcoded parameters as
-the inputs. For example, the `stage/vpc/main.tf` might look like:
+For example, the `stage/vpc/main.tf` might look like:
 
 ```hcl
 module "vpc" {
@@ -186,7 +196,7 @@ output "vpc_id" {
 }
 ```
 
-Similarly, the `provider.tf` file will contain the provider configuration with the `required_providers` block to specify
+The `provider.tf` file will contain the provider configuration with the `required_providers` block to specify
 the version:
 
 ```hcl
@@ -217,12 +227,15 @@ terraform {
 }
 ```
 
-The challenge is that you can't modularize the `provider` and `backend` configurations due to the aforementioned
-limitations. This results in the `provider.tf` and `backend.tf` files being mostly duplicated across all the modules.
+This setup works well for a small scale deployment like above, or for a simple provider and backend configuration.
 
-This is not that painful to maintain for a small handful of modules, or a simple provider configuration that only
-depends on the region. But what if you have hundreds of components distributed across tens of environments? And what
-about more complex provider configurations that have different AWS IAM Roles?
+But what if you have hundreds of components distributed across tens of environments? And what if you need to adjust your
+provider configurations to use different AWS IAM Roles or you want to enhance it with `allowed_account_ids`?
+
+The challenge is that you can’t modularize the `provider` and `backend` configurations due to the aforementioned
+limitations. This results in the `provider.tf` and `backend.tf` files being mostly duplicated across all the modules,
+and maintained manually, leading to a painful refactoring process if you ever need to change a pattern in one of these
+files.
 
 We can address this by using Jsonnet.
 
@@ -235,14 +248,9 @@ what we can accomplish with Jsonnet.
 >
 > All the code is available at https://github.com/tf-libsonnet/infrastructure-live-example.
 
-First, since Jsonnet is not bound by Terraform, we can essentially modularize any component using functions, provided
-that the resulting code is valid Jsonnet. This means that we can create a function that generates the `provider` and
-`backend` blocks and reuse it wherever we need it:
-
-> **NOTE**:
->
-> We use the `.libsonnet` extension here. Conventionally, Jsonnet libraries intended to be imported use the `.libsonnet`
-> extension while root files that are meant to be processed by `jsonnet` use the `.jsonnet` extension.
+First, since Jsonnet is not bound by Terraform, we can essentially modularize any component using functions. Even though
+Terraform may not support this, in Jsonnet we can create a function that generates the `provider` and `backend` blocks
+and reuse it wherever we need it:
 
 **_provider.libsonnet_**
 
@@ -276,18 +284,24 @@ local const = import './constants.json';
 }
 ```
 
-With Jsonnet, we can interpolate values in the backend block to dynamically generate the content based on given
-parameters. In this way, we can construct the backend block for each region and component without all the boilerplate
+> **NOTE**:
+>
+> We use the `.libsonnet` extension here. Conventionally, Jsonnet libraries intended to be imported use the `.libsonnet`
+> extension while root files that are meant to be processed by `jsonnet` use the `.jsonnet` extension.
+
+In addition to modularizing these blocks, we can also interpolate values in the backend block to dynamically generate
+the content based on given parameters. This is possible because the values are static by the time Terraform sees it post
+compilation. In this way, we can construct the backend block for each region and component without all the boilerplate
 repeated.
 
-Note that we also extract the hard coded region into a reusable JSON file. Since Jsonnet is a superset of JSON, we can
-import plain JSON like normal Jsonnet. The contents of `constants.json` looks like follows:
+We also extracted the hard coded region into a reusable JSON file to promote more DRY code. Since Jsonnet is a superset
+of JSON, we can import plain JSON like normal Jsonnet. The contents of `constants.json` looks like follows:
 
 ```json
 {"region": "us-west-2"}
 ```
 
-Similarly, we can create a function for generating the `vpc` and `mysql` module components:
+Moving on, let's modularize the VPC and MySQL components by defining a function for generating the relevant blocks:
 
 **_vpc.libsonnet_**
 
@@ -363,9 +377,18 @@ At this point, your folder structure should look like the following:
 ```
 
 Where the `jsonnetfile.json` and `jsonnetfile.lock.json` files are
-[jsonnet-bundler](https://github.com/jsonnet-bundler/jsonnet-bundler) configurations for installing `tf.libsonnet`.
+[jsonnet-bundler](https://github.com/jsonnet-bundler/jsonnet-bundler) configurations for installing `tf.libsonnet`. You
+can generate this using the following commands:
 
-With this, we can define what a single environment should look like:
+```text
+jb init
+jb install github.com/tf-libsonnet/hashicorp-aws@main
+# NOTE: we don't need to explicitly install tf-libsonnet/core because
+#       it will be pulled as a transient dependency of the hashicorp-aws
+#       library.
+```
+
+With these building blocks, we can define what a single environment should look like:
 
 **_stack/main.jsonnet_**
 
@@ -444,7 +467,7 @@ $ tree ./out
         └── main.tf.json
 ```
 
-Here is what `stage/vpc/main.tf.json` looks like:
+As a sample, here is what `stage/vpc/main.tf.json` looks like:
 
 ```json
 {
@@ -516,9 +539,9 @@ If you have run across these limitations of Terraform HCL, you might have been i
 that attempt to solve these problems. To name a few:
 
 - [Terragrunt](https://terragrunt.gruntwork.io/)
-- [Terramate](https://github.com/mineiros-io/terramate)
 - [Pulumi](https://www.pulumi.com/)
 - [CDKTF](https://developer.hashicorp.com/terraform/cdktf)
+- [Terramate](https://github.com/mineiros-io/terramate)
 
 Each of these tools attempt to solve the problem using similar approaches of using a templating abstraction
 (Terragrunt` and Terramate` use an HCL abstraction, while CDKTF and Pulumi uses general purpose programming languages).
@@ -528,9 +551,9 @@ resources, and thus the Terraform runtime. For example, instead of running `terr
 might run:
 
 - `terragrunt plan` and `terragrunt apply`
-- `terramate run`
 - `pulumi up`
 - `cdktf deploy`
+- `terramate run`
 
 This control gives each of these tools the extensibility to implement feature enhancements that are not provided by
 `terraform` natively (e.g., [terragrunt
