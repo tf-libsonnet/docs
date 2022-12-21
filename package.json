@@ -1,0 +1,17 @@
+{
+  "name": "tf-libsonnet-docs",
+  "version": "0.0.1",
+  "description": "Documentation site for tf-libsonnet.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tf-libsonnet/docs.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "homepage": "https://github.com/tf-libsonnet/docs#readme",
+  "devDependencies": {
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.3.7",
+    "postcss-cli": "^9.0.2"
+  }
+}
