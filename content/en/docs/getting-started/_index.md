@@ -286,7 +286,8 @@ with TypeScript, but you can get some limited form of type safety by using the p
 functions. Using these libraries can give you compile time guarantees for the references and attributes.
 
 For example, if you had misspelled `triggers` in the attribute object, `jsonnet` will compile the code down to
-JSON, but `terraform` will not be happy with it.
+JSON, but `terraform` will not be happy with it. With the library functions, `triggers` is an explicit function
+parameter so `jsonnet` will complain if you mistype the name.
 
 Refer to the [Supported Providers](/docs/supported-providers) page for the list of officially maintained provider libraries.
 
@@ -321,7 +322,8 @@ Before you can compile the code, you will need to make sure the library is avail
 jb install github.com/tf-libsonnet/hashicorp-null@v0.0.3
 ```
 
-Finally, run `jsonnet` to generate the compiled code and verify your results.
+Finally, run `jsonnet` to generate the compiled code and verify your results. It should look exactly the same as it was
+prior to using the `null.resource.new` function.
 
 Note that this is where the true strengths of the compiler pattern emerges. This switch to `tf.libsonnet/hashicorp-null`
 is considered a refactor of your Jsonnet code. You are modifying the Jsonnet code without changing the resulting

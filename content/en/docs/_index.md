@@ -6,8 +6,8 @@ menu:
   main: {weight: 2}
 ---
 
-Learn about key concepts, try a quick start, find tutorials and reference
-material for all supported providers:
+Here you can learn about key concepts, try a quick start, find tutorials, or search library docs for all supported
+providers:
 
 - **Eager to see tf.libsonnet in action?**
 
@@ -19,7 +19,7 @@ material for all supported providers:
   - [Standard Library](https://jsonnet.org/ref/stdlib.html)
   - [Language Design](https://jsonnet.org/articles/design.html)
 
-- **Why should you use Jsonnet for Terraform?**
+- **Not sure why should you use Jsonnet for Terraform?**
 
   Take a look at [What is tf.libsonnet](what-is-tf-libsonnet) for an overview of what Jsonnet and `tf.libsonnet` has to
   offer.
