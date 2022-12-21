@@ -1,0 +1,40 @@
+<table>
+  <thead>
+    <tr>
+      <th>Provider</th>
+      <th>Repo</th>
+      <th>Reference</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range site.Data.supported_providers -}}
+    <tr>
+      <td>
+        <a href="https://registry.terraform.io/providers/{{ .name }}/latest">{{- .name -}}</a>
+      </td>
+      <td>
+        <a href="https://github.com/{{ .repo }}">{{- .repo -}}</a>
+      </td>
+      <td>
+        <ul>
+          <li>
+            <a href="https://github.com/{{ .repo }}/blob/main/docs/{{ .subdir }}/provider.md">
+              provider config
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/{{ .repo }}/blob/main/docs/{{ .subdir }}/README.md">
+              resources
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/{{ .repo }}/blob/main/docs/{{ .subdir }}/data/index.md">
+              data sources
+            </a>
+          </li>
+        </ul>
+      </td>
+    </tr>
+    {{- end }}
+  </tbody>
+</table>
