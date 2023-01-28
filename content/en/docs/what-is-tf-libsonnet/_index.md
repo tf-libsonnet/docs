@@ -544,7 +544,7 @@ that attempt to solve these problems. To name a few:
 - [Terramate](https://github.com/mineiros-io/terramate)
 
 Each of these tools attempt to solve the problem using similar approaches of using a templating abstraction
-(Terragrunt` and Terramate` use an HCL abstraction, while CDKTF and Pulumi uses general purpose programming languages).
+(Terragrunt and Terramate use an HCL abstraction, while CDKTF and Pulumi uses general purpose programming languages).
 
 However, in addition to being a templating abstraction, these tools also attempt to manage the lifecycle of the
 resources, and thus the Terraform runtime. For example, instead of running `terraform plan` and `terraform apply`, you
